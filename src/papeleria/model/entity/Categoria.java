@@ -1,25 +1,31 @@
 package papeleria.model.entity;
 
+/**
+ * Representa una categoría de productos en la papelería.
+ */
 public class Categoria {
-    private int idCategoria;
+    private int id; // Nuevo campo para el ID
     private String nombre;
 
-    public Categoria(int idCategoria, String nombre) {
-        this.idCategoria = idCategoria;
+    // Constructor con ID (usado al recuperar de la BD)
+    public Categoria(int id, String nombre) {
+        this.id = id;
         this.nombre = nombre;
     }
 
-    // Constructor para cuando el ID es autoincremental en la BD
+    // Constructor sin ID (usado al insertar un nuevo objeto, el ID será generado por la BD)
     public Categoria(String nombre) {
-        this(-1, nombre); // Usamos -1 para indicar que no tiene ID aún
+        this.nombre = nombre;
     }
 
-    public int getIdCategoria() {
-        return idCategoria;
+    // --- Getters y Setters ---
+
+    public int getId() {
+        return id;
     }
 
-    public void setIdCategoria(int idCategoria) {
-        this.idCategoria = idCategoria;
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getNombre() {
@@ -30,22 +36,29 @@ public class Categoria {
         this.nombre = nombre;
     }
 
+    /**
+     * Sobreescribe el método toString() para que el JComboBox muestre el nombre de la categoría.
+     * @return El nombre de la categoría.
+     */
     @Override
     public String toString() {
-        return nombre; // Importante para que el JComboBox muestre el nombre
+        return nombre;
     }
 
-    // Para comparar objetos Categoria, útil en JComboBox.setSelectedItem()
+    /**
+     * Sobreescribe equals y hashCode para que JComboBox.setSelectedItem() funcione correctamente
+     * cuando se usan objetos Categoria. Dos categorías son iguales si tienen el mismo ID.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Categoria categoria = (Categoria) o;
-        return idCategoria == categoria.idCategoria;
+        return id == categoria.id;
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(idCategoria);
+        return id;
     }
 }

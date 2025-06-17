@@ -1,62 +1,62 @@
 package papeleria.view;
 
-import papeleria.model.entity.Producto;
+import papeleria.model.entity.Marca;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
-/**
- * Panel para mostrar, buscar, editar y eliminar productos.
- */
-public class PanelMostrarProductos extends JPanel {
-    private JTable tablaProductos;
+public class PanelGestionMarca extends JPanel {
+    private JTable tablaMarcas;
     private DefaultTableModel modeloTabla;
     private JTextField txtBusqueda;
     private JButton btnBuscar;
+    private JButton btnAgregar;
     private JButton btnEditar;
     private JButton btnEliminar;
     private JButton btnVolver;
 
-    public PanelMostrarProductos() {
+    public PanelGestionMarca() {
         setLayout(new BorderLayout(10, 10)); // Espaciado
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Margen alrededor del panel
 
         // --- Panel Superior (Búsqueda y Título) ---
         JPanel panelSuperior = new JPanel(new BorderLayout());
-        JLabel lblTitulo = new JLabel("Gestión de Productos", SwingConstants.CENTER);
+        JLabel lblTitulo = new JLabel("Gestión de Marcas", SwingConstants.CENTER);
         lblTitulo.setFont(new Font("Arial", Font.BOLD, 24));
         panelSuperior.add(lblTitulo, BorderLayout.NORTH);
 
         JPanel panelBusqueda = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         txtBusqueda = new JTextField(20);
-        btnBuscar = new JButton("Buscar");
-        panelBusqueda.add(new JLabel("Buscar por Nombre:"));
+        btnBuscar = new JButton("Buscar Marca");
+        panelBusqueda.add(new JLabel("Nombre de Marca:"));
         panelBusqueda.add(txtBusqueda);
         panelBusqueda.add(btnBuscar);
         panelSuperior.add(panelBusqueda, BorderLayout.SOUTH);
         add(panelSuperior, BorderLayout.NORTH);
 
-        // --- Panel Central (Tabla de Productos) ---
-        String[] columnas = {"ID", "Nombre", "Precio Venta", "Categoría", "Marca"};
+        // --- Panel Central (Tabla de Marcas) ---
+        String[] columnas = {"ID", "Nombre"};
         modeloTabla = new DefaultTableModel(columnas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Las celdas no son editables directamente en la tabla
             }
         };
-        tablaProductos = new JTable(modeloTabla);
-        tablaProductos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Solo una fila a la vez
-        JScrollPane scrollPane = new JScrollPane(tablaProductos);
+        tablaMarcas = new JTable(modeloTabla);
+        tablaMarcas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Solo una fila a la vez
+        JScrollPane scrollPane = new JScrollPane(tablaMarcas);
         add(scrollPane, BorderLayout.CENTER);
 
         // --- Panel Inferior (Botones de Acción) ---
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10)); // Más espacio entre botones
-        btnEditar = new JButton("Editar Producto");
-        btnEliminar = new JButton("Eliminar Producto");
+        btnAgregar = new JButton("Nueva Marca");
+        btnEditar = new JButton("Editar Marca");
+        btnEliminar = new JButton("Eliminar Marca");
         btnVolver = new JButton("Volver al Inicio");
 
+        panelBotones.add(btnAgregar);
         panelBotones.add(btnEditar);
         panelBotones.add(btnEliminar);
         panelBotones.add(btnVolver);
@@ -69,8 +69,8 @@ public class PanelMostrarProductos extends JPanel {
         return modeloTabla;
     }
 
-    public JTable getTablaProductos() {
-        return tablaProductos;
+    public JTable getTablaMarcas() {
+        return tablaMarcas;
     }
 
     public JTextField getTxtBusqueda() {
@@ -79,6 +79,10 @@ public class PanelMostrarProductos extends JPanel {
 
     public JButton getBtnBuscar() {
         return btnBuscar;
+    }
+
+    public JButton getBtnAgregar() {
+        return btnAgregar;
     }
 
     public JButton getBtnEditar() {
@@ -94,33 +98,33 @@ public class PanelMostrarProductos extends JPanel {
     }
 
     /**
-     * Actualiza la tabla de productos con una nueva lista de productos.
-     * @param productos La lista de objetos Producto a mostrar.
+     * Actualiza la tabla de marcas con una nueva lista de marcas.
+     * @param marcas La lista de objetos Marca a mostrar.
      */
-    public void actualizarTabla(List<Producto> productos) {
+    public void actualizarTabla(List<Marca> marcas) {
         modeloTabla.setRowCount(0); // Limpiar filas existentes
-        for (Producto p : productos) {
-            modeloTabla.addRow(new Object[]{
-                    p.getId(),
-                    p.getNombre(),
-                    p.getPrecioVenta(),
-                    p.getCategoria() != null ? p.getCategoria().getNombre() : "N/A",
-                    p.getMarca() != null ? p.getMarca().getNombre() : "N/A"
-            });
+        for (Marca marca : marcas) {
+            modeloTabla.addRow(new Object[]{marca.getId(), marca.getNombre()});
         }
     }
 
     /**
-     * Obtiene el ID del producto seleccionado en la tabla.
-     * @return El ID del producto seleccionado, o -1 si no hay ninguno seleccionado.
+     * Obtiene el ID de la marca seleccionada en la tabla.
+     * @return El ID de la marca seleccionada, o -1 si no hay ninguna seleccionada.
      */
-    public int getProductoSeleccionadoId() {
-        int selectedRow = tablaProductos.getSelectedRow();
+    public int getMarcaSeleccionadaId() {
+        int selectedRow = tablaMarcas.getSelectedRow();
         if (selectedRow != -1) {
-            // Convertir la fila de la vista al modelo para evitar problemas con el orden de las filas
-            int modelRow = tablaProductos.convertRowIndexToModel(selectedRow);
+            int modelRow = tablaMarcas.convertRowIndexToModel(selectedRow);
             return (int) modeloTabla.getValueAt(modelRow, 0); // ID está en la columna 0
         }
         return -1;
+    }
+
+    /**
+     * Limpia el campo de búsqueda.
+     */
+    public void limpiarBusqueda() {
+        txtBusqueda.setText("");
     }
 }

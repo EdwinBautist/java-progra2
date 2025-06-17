@@ -1,25 +1,31 @@
 package papeleria.model.entity;
 
+/**
+ * Representa una marca de productos en la papelería.
+ */
 public class Marca {
-    private int idMarca;
+    private int id; // Campo para el ID
     private String nombre;
 
-    public Marca(int idMarca, String nombre) {
-        this.idMarca = idMarca;
+    // Constructor con ID (usado al recuperar de la BD)
+    public Marca(int id, String nombre) {
+        this.id = id;
         this.nombre = nombre;
     }
 
-    // Constructor para cuando el ID es autoincremental en la BD
+    // Constructor sin ID (usado al insertar un nuevo objeto, el ID será generado por la BD)
     public Marca(String nombre) {
-        this(-1, nombre);
+        this.nombre = nombre;
     }
 
-    public int getIdMarca() {
-        return idMarca;
+    // --- Getters y Setters ---
+
+    public int getId() {
+        return id;
     }
 
-    public void setIdMarca(int idMarca) {
-        this.idMarca = idMarca;
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getNombre() {
@@ -30,22 +36,29 @@ public class Marca {
         this.nombre = nombre;
     }
 
+    /**
+     * Sobreescribe el método toString() para que el JComboBox muestre el nombre de la marca.
+     * @return El nombre de la marca.
+     */
     @Override
     public String toString() {
-        return nombre; // Importante para que el JComboBox muestre el nombre
+        return nombre;
     }
 
-    // Para comparar objetos Marca, útil en JComboBox.setSelectedItem()
+    /**
+     * Sobreescribe equals y hashCode para que JComboBox.setSelectedItem() funcione correctamente
+     * cuando se usan objetos Marca. Dos marcas son iguales si tienen el mismo ID.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Marca marca = (Marca) o;
-        return idMarca == marca.idMarca;
+        return id == marca.id;
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(idMarca);
+        return id;
     }
 }
