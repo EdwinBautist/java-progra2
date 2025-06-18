@@ -16,6 +16,7 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" exported="" name="mysql-connector-j-9.3" level="project" />
+    <orderEntry type="library" name="mysql-connector-j-9.3" level="project" />
+    <orderEntry type="library" name="mysql-connector-j_9.3.0-1ubuntu24" level="project" />
   </component>
 </module>
