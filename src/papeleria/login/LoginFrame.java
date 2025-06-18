@@ -1,78 +1,51 @@
 package papeleria.login;
 
-
-
 import papeleria.AppMain;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 public class LoginFrame extends JFrame {
 
     public LoginFrame() {
-        setTitle("Inicio de Sesion");
+        setTitle("Inicio de Sesión");
         setSize(300, 180);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLayout(new GridLayout(4, 2));
+        setLayout(new GridLayout(3, 2, 5, 5));
 
-        JLabel emailLabel = new JLabel("Email:");
         JTextField emailField = new JTextField();
-
-        JLabel passLabel = new JLabel("Contraseña:");
         JPasswordField passField = new JPasswordField();
+        JButton loginButton = new JButton("Iniciar Sesión");
 
-        JButton loginButton = new JButton("Iniciar Sesion");
-        JLabel statusLabel = new JLabel("");
-
-        add(emailLabel);
+        add(new JLabel("Email:"));
         add(emailField);
-        add(passLabel);
+        add(new JLabel("Contraseña:"));
         add(passField);
         add(new JLabel(""));
         add(loginButton);
-        add(new JLabel(""));
-        add(statusLabel);
 
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String email = emailField.getText();
-                String contrasena = new String(passField.getPassword());
+        loginButton.addActionListener((ActionEvent e) -> {
+            String email = emailField.getText().trim();
+            String contrasena = new String(passField.getPassword()).trim();
 
-                LoginManager.RolUsuario rol = LoginManager.autenticar(email, contrasena);
+            if (email.isEmpty() || contrasena.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Complete todos los campos", "Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
 
-                switch (rol) {
-                    case VENDEDOR:
-                        dispose(); // Cierra la ventana de login
-                        AppMain.iniciarComoVendedor();
-
-                        break;
-                    case GERENTE:
-                        dispose();
-                        JOptionPane.showMessageDialog(null, "Pantalla de gerente no implementada");
-
-                        break;
-                    default:
-                        statusLabel.setText("Usuario o contraseña incorrectos");
-                }
+            if (LoginManager.autenticar(email, contrasena)) {
+                dispose();
+                AppMain.iniciarAplicacion();
+            } else {
+                JOptionPane.showMessageDialog(this, "Credenciales incorrectas", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
         setVisible(true);
     }
 
-    // Clase simulada para prueba
-    static class AppVendedor {
-        public static void iniciar() {
-            JFrame frame = new JFrame("Pantalla Vendedor");
-            frame.setSize(300, 200);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.add(new JLabel("Bienvenido Vendedor"), BorderLayout.CENTER);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(LoginFrame::new);
     }
 }

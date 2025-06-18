@@ -1,61 +1,81 @@
 package papeleria.model.dao;
 
 import papeleria.model.entity.Cliente;
+import papeleria.utils.DatabaseConnection;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import papeleria.utils.DatabaseConnection;
 
 public class ClienteDAO {
-    private static final String SQL_INSERT = "INSERT INTO Cliente (nombre, telefono, email) VALUES (?, ?, ?)";
-    private static final String SQL_SELECT_ALL = "SELECT id_cliente, nombre, telefono, email FROM Cliente ORDER BY nombre";
-    private static final String SQL_SELECT_BY_ID = "SELECT id_cliente, nombre, telefono, email FROM Cliente WHERE id_cliente = ?";
-    private static final String SQL_UPDATE = "UPDATE Cliente SET nombre = ?, telefono = ?, email = ? WHERE id_cliente = ?";
-    private static final String SQL_DELETE = "DELETE FROM Cliente WHERE id_cliente = ?";
-    private static final String SQL_SEARCH = "SELECT id_cliente, nombre, telefono, email FROM Cliente WHERE nombre LIKE ? OR telefono LIKE ? OR email LIKE ? ORDER BY nombre";
-
-    public void crearCliente(Cliente cliente) throws SQLException {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS)) {
-
-            pstmt.setString(1, cliente.getNombre());
-            pstmt.setString(2, cliente.getTelefono());
-            pstmt.setString(3, cliente.getEmail());
-            pstmt.executeUpdate();
-
-            try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                if (rs.next()) {
-                    cliente.setId(rs.getInt(1));
-                }
-            }
-        }
-    }
 
     public List<Cliente> obtenerTodosClientes() throws SQLException {
-        List<Cliente> clientes = new ArrayList<>();
-
+        List<Cliente> lista = new ArrayList<>();
+        String sql = "SELECT * FROM Cliente";
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(SQL_SELECT_ALL)) {
-
+             ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                Cliente cliente = new Cliente(
+                Cliente c = new Cliente(
                         rs.getInt("id_cliente"),
                         rs.getString("nombre"),
                         rs.getString("telefono"),
                         rs.getString("email")
                 );
-                clientes.add(cliente);
+                lista.add(c);
             }
         }
-        return clientes;
+        return lista;
     }
 
-    public Cliente obtenerClientePorId(int id) throws SQLException {
+    public boolean insertar(Cliente cliente) throws SQLException {
+        String sql = "INSERT INTO Cliente (nombre, telefono, email) VALUES (?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(SQL_SELECT_BY_ID)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, cliente.getNombre());
+            pstmt.setString(2, cliente.getTelefono());
+            pstmt.setString(3, cliente.getEmail());
 
-            pstmt.setInt(1, id);
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        cliente.setId(rs.getInt(1));
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    }
+
+    public boolean actualizar(Cliente cliente) throws SQLException {
+        String sql = "UPDATE Cliente SET nombre = ?, telefono = ?, email = ? WHERE id_cliente = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, cliente.getNombre());
+            pstmt.setString(2, cliente.getTelefono());
+            pstmt.setString(3, cliente.getEmail());
+            pstmt.setInt(4, cliente.getId());
+
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean eliminar(int idCliente) throws SQLException {
+        String sql = "DELETE FROM Cliente WHERE id_cliente = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, idCliente);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public Cliente obtenerPorId(int idCliente) throws SQLException {
+        String sql = "SELECT * FROM Cliente WHERE id_cliente = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, idCliente);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return new Cliente(
@@ -68,68 +88,5 @@ public class ClienteDAO {
             }
         }
         return null;
-    }
-
-    public void actualizarCliente(Cliente cliente) throws SQLException {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(SQL_UPDATE)) {
-
-            pstmt.setString(1, cliente.getNombre());
-            pstmt.setString(2, cliente.getTelefono());
-            pstmt.setString(3, cliente.getEmail());
-            pstmt.setInt(4, cliente.getId());
-            pstmt.executeUpdate();
-        }
-    }
-
-    public void eliminarCliente(int id) throws SQLException {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(SQL_DELETE)) {
-
-            pstmt.setInt(1, id);
-            pstmt.executeUpdate();
-        }
-    }
-
-    public List<Cliente> buscarClientes(String criterio) throws SQLException {
-        List<Cliente> clientes = new ArrayList<>();
-        String parametro = "%" + criterio + "%";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(SQL_SEARCH)) {
-
-            pstmt.setString(1, parametro);
-            pstmt.setString(2, parametro);
-            pstmt.setString(3, parametro);
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Cliente cliente = new Cliente(
-                            rs.getInt("id_cliente"),
-                            rs.getString("nombre"),
-                            rs.getString("telefono"),
-                            rs.getString("email")
-                    );
-                    clientes.add(cliente);
-                }
-            }
-        }
-        return clientes;
-    }
-
-    public boolean existeClienteConEmail(String email) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM Cliente WHERE email = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, email);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1) > 0;
-                }
-            }
-        }
-        return false;
     }
 }

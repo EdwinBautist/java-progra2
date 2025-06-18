@@ -149,9 +149,9 @@ public class TiendaApp extends JFrame {
     private void conectarBD() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            String url = "jdbc:mysql://localhost:3306/papeleria";
-            String usuario = "edwi";
-            String contrasena = "Papeleria2024!";
+            String url = "jdbc:mysql://localhost:3306/Papeleria";
+            String usuario = "Daniel";
+            String contrasena = "pape";
             conexion = DriverManager.getConnection(url, usuario, contrasena);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al conectar: " + e.getMessage(),

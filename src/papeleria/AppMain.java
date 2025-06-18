@@ -56,7 +56,7 @@ public class AppMain {
                 mainFrame.addWindowListener(new WindowAdapter() {
                         @Override
                         public void windowClosing(WindowEvent e) {
-                                ConexionBD.closeConnection();
+                                DatabaseConnection.closeConnection();
                         }
                 });
         }
@@ -303,5 +303,11 @@ public class AppMain {
                         new papeleria.login.LoginFrame();
                 });
         }
+
+        public static void iniciarAplicacion() {
+                AppMain app = new AppMain();
+                app.init(); // Este muestra la interfaz y configura todo
+        }
+
 
 }

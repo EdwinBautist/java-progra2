@@ -3,71 +3,55 @@ package papeleria.view;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Clase principal de la ventana (JFrame) que contiene los diferentes paneles.
- * Utiliza CardLayout para cambiar entre ellos.
- */
 public class MainFrame extends JFrame {
-    private JPanel cardPanel;
     private CardLayout cardLayout;
-
+    private JPanel cardPanel;
     private PanelInicio panelInicio;
-    private PanelInsertarProducto panelInsertar;
-    private PanelMostrarProductos panelMostrar;
-    private PanelGestionMarca panelGestionMarca; // Nuevo panel de gestión de marcas
-    private PanelVenta panelVenta; //Para la gestión de ventas
-
+    private PanelVenta panelVenta;
+    private PanelCliente panelCliente;
+    private PanelMarca panelMarca;
+    private PanelCategoria panelCategoria;
+    private PanelGestionProducto panelGestionProducto;
+    private PanelRegistrarProducto panelRegistrarProducto;
 
     public MainFrame() {
         setTitle("Sistema de Gestión de Papelería");
-        setSize(1000, 700); // Tamaño inicial más grande
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // Centrar la ventana en la pantalla
+        setSize(800, 600);
+        setLocationRelativeTo(null);
 
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        // Inicialización de los paneles
+        // Crear los paneles
         panelInicio = new PanelInicio();
-        panelInsertar = new PanelInsertarProducto();
-        panelMostrar = new PanelMostrarProductos();
-        panelGestionMarca = new PanelGestionMarca(); // Inicializar el nuevo panel
         panelVenta = new PanelVenta();
-        cardPanel.add(panelVenta, "Venta");
+        panelCliente = new PanelCliente();
+        panelMarca = new PanelMarca();
+        panelCategoria = new PanelCategoria();
+        panelGestionProducto = new PanelGestionProducto();
+        panelRegistrarProducto = new PanelRegistrarProducto();
 
-        // Añadir paneles al CardLayout
+        // Agregar paneles al cardPanel con nombres identificativos
         cardPanel.add(panelInicio, "Inicio");
-        cardPanel.add(panelInsertar, "InsertarProducto");
-        cardPanel.add(panelMostrar, "MostrarProductos");
-        cardPanel.add(panelGestionMarca, "GestionMarca"); // Añadir el nuevo panel
+        cardPanel.add(panelVenta, "Venta");
+        cardPanel.add(panelCliente, "Clientes");
+        cardPanel.add(panelMarca, "Marcas");
+        cardPanel.add(panelCategoria, "Categorias");
+        cardPanel.add(panelGestionProducto, "GestionProducto");
+        cardPanel.add(panelRegistrarProducto, "RegistrarProducto");
 
-        add(cardPanel); // Añadir el panel contenedor al JFrame
+        add(cardPanel);
     }
 
-    // --- Getters para acceder a los paneles y al CardLayout ---
+    // Getters para los paneles
+    public CardLayout getCardLayout() { return cardLayout; }
+    public JPanel getCardPanel() { return cardPanel; }
+    public PanelInicio getPanelInicio() { return panelInicio; }
     public PanelVenta getPanelVenta() { return panelVenta; }
-
-    public JPanel getCardPanel() {
-        return cardPanel;
-    }
-
-    public CardLayout getCardLayout() {
-        return cardLayout;
-    }
-
-    public PanelInicio getPanelInicio() {
-        return panelInicio;
-    }
-
-    public PanelInsertarProducto getPanelInsertar() {
-        return panelInsertar;
-    }
-
-    public PanelMostrarProductos getPanelMostrar() {
-        return panelMostrar;
-    }
-
-    public PanelGestionMarca getPanelGestionMarca() {
-        return panelGestionMarca;
-    }
+    public PanelCliente getPanelCliente() { return panelCliente; }
+    public PanelMarca getPanelMarca() { return panelMarca; }
+    public PanelCategoria getPanelCategoria() { return panelCategoria; }
+    public PanelGestionProducto getPanelGestionProducto() { return panelGestionProducto; }
+    public PanelRegistrarProducto getPanelRegistrarProducto() { return panelRegistrarProducto; }
 }

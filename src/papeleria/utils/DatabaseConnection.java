@@ -5,14 +5,13 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-/**
- * Clase utilitaria para manejar conexiones a la base de datos.
- */
 public class DatabaseConnection {
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/papeleria";
-    private static final String DB_USER = "edwi";
-    private static final String DB_PASSWORD = "Papeleria2024!";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/Papeleria";
+    private static final String DB_USER = "Daniel";
+    private static final String DB_PASSWORD = "pape";
     private static final Properties DB_PROPERTIES = new Properties();
+
+    private static Connection currentConnection = null;
 
     static {
         DB_PROPERTIES.setProperty("user", DB_USER);
@@ -23,47 +22,39 @@ public class DatabaseConnection {
         DB_PROPERTIES.setProperty("allowPublicKeyRetrieval", "true");
     }
 
-    private DatabaseConnection() {} // Prevenir instanciación
+    private DatabaseConnection() {}
 
-    /**
-     * Obtiene una conexión a la base de datos.
-     * @return Objeto Connection
-     * @throws SQLException Si ocurre un error al conectar
-     */
     public static Connection getConnection() throws SQLException {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            return DriverManager.getConnection(DB_URL, DB_PROPERTIES);
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("Driver JDBC no encontrado", e);
+        if (currentConnection == null || currentConnection.isClosed()) {
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                currentConnection = DriverManager.getConnection(DB_URL, DB_PROPERTIES);
+            } catch (ClassNotFoundException e) {
+                throw new SQLException("Driver JDBC no encontrado", e);
+            }
         }
+        return currentConnection;
     }
 
-    /**
-     * Cierra una conexión de manera segura.
-     * @param conn La conexión a cerrar
-     */
-    public static void closeConnection(Connection conn) {
-        if (conn != null) {
+    public static void closeConnection() {
+        if (currentConnection != null) {
             try {
-                if (!conn.isClosed()) {
-                    conn.close();
+                if (!currentConnection.isClosed()) {
+                    currentConnection.close();
                 }
             } catch (SQLException e) {
                 System.err.println("Error al cerrar la conexión: " + e.getMessage());
+            } finally {
+                currentConnection = null;
             }
         }
     }
 
-    /**
-     * Realiza un rollback de manera segura.
-     * @param conn La conexión donde hacer rollback
-     */
-    public static void rollback(Connection conn) {
-        if (conn != null) {
+    public static void rollback() {
+        if (currentConnection != null) {
             try {
-                if (!conn.isClosed()) {
-                    conn.rollback();
+                if (!currentConnection.isClosed()) {
+                    currentConnection.rollback();
                 }
             } catch (SQLException e) {
                 System.err.println("Error al hacer rollback: " + e.getMessage());
