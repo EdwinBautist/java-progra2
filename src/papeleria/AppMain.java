@@ -6,6 +6,7 @@ import papeleria.view.*;
 import javax.swing.*;
 import java.awt.event.*;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 import javax.swing.table.DefaultTableModel;
@@ -18,6 +19,8 @@ public class AppMain {
         private MarcaDAO marcaDAO;
         private ClienteDAO clienteDAO;
         private DefaultTableModel modeloVenta;
+        private DefaultTableModel modeloTablaProductos;
+        private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
         private int idEmpleadoSesion = 1; // ID del empleado logueado (debería venir del login)
 
         public AppMain() {
@@ -41,6 +44,20 @@ public class AppMain {
                         };
                         mainFrame.getPanelVenta().getTablaVenta().setModel(modeloVenta);
 
+                        // Configurar modelo para la tabla de productos (de TiendaApp)
+                        modeloTablaProductos = new DefaultTableModel() {
+                                @Override
+                                public boolean isCellEditable(int row, int column) {
+                                        return false;
+                                }
+                        };
+                        modeloTablaProductos.addColumn("ID");
+                        modeloTablaProductos.addColumn("Nombre");
+                        modeloTablaProductos.addColumn("Precio");
+                        modeloTablaProductos.addColumn("Cantidad");
+                        modeloTablaProductos.addColumn("Fecha Registro");
+                        mainFrame.getPanelProductos().getTablaProductos().setModel(modeloTablaProductos);
+
                         setupEventListeners();
                 } catch (ClassNotFoundException e) {
                         JOptionPane.showMessageDialog(null, "Error al cargar el driver JDBC: " + e.getMessage(),
@@ -62,8 +79,18 @@ public class AppMain {
         }
 
         private void setupEventListeners() {
-                // Listeners existentes...
+                // Listeners para PanelInicio
                 mainFrame.getPanelInicio().getBtnRealizarVenta().addActionListener(e -> abrirPanelVenta());
+                mainFrame.getPanelInicio().getBtnGestionarProductos().addActionListener(e -> abrirPanelProductos());
+
+                // Listeners para PanelProductos
+                mainFrame.getPanelProductos().getBtnInsertar().addActionListener(e -> abrirPanelInsertarProducto());
+                mainFrame.getPanelProductos().getBtnActualizar().addActionListener(e -> actualizarTablaProductos());
+                mainFrame.getPanelProductos().getBtnVolver().addActionListener(e -> volverAlInicio());
+
+                // Listeners para PanelInsertarProducto
+                mainFrame.getPanelInsertarProducto().getBtnGuardar().addActionListener(e -> guardarProducto());
+                mainFrame.getPanelInsertarProducto().getBtnVolver().addActionListener(e -> volverAPanelProductos());
 
                 // Listeners para PanelVenta
                 PanelVenta panelVenta = mainFrame.getPanelVenta();
@@ -75,6 +102,128 @@ public class AppMain {
                 panelVenta.getBtnVolver().addActionListener(e -> volverAlInicio());
         }
 
+        // Métodos para la gestión de productos (de TiendaApp)
+        private void abrirPanelProductos() {
+                actualizarTablaProductos();
+                mainFrame.getCardLayout().show(mainFrame.getCardPanel(), "Productos");
+        }
+
+        private void abrirPanelInsertarProducto() {
+                cargarCombosInsertarProducto();
+                mainFrame.getCardLayout().show(mainFrame.getCardPanel(), "InsertarProducto");
+        }
+
+        private void volverAPanelProductos() {
+                mainFrame.getCardLayout().show(mainFrame.getCardPanel(), "Productos");
+        }
+
+        private void cargarCombosInsertarProducto() {
+                try {
+                        // Cargar categorías
+                        List<Categoria> categorias = categoriaDAO.obtenerTodasCategorias();
+                        JComboBox<Categoria> comboCategoria = mainFrame.getPanelInsertarProducto().getComboCategoria();
+                        comboCategoria.removeAllItems();
+                        comboCategoria.addItem(new Categoria(0, "Seleccione una categoría"));
+                        for (Categoria c : categorias) {
+                                comboCategoria.addItem(c);
+                        }
+
+                        // Cargar marcas
+                        List<Marca> marcas = marcaDAO.obtenerTodasMarcas();
+                        JComboBox<Marca> comboMarca = mainFrame.getPanelInsertarProducto().getComboMarca();
+                        comboMarca.removeAllItems();
+                        comboMarca.addItem(new Marca(0, "Seleccione una marca"));
+                        for (Marca m : marcas) {
+                                comboMarca.addItem(m);
+                        }
+                } catch (SQLException e) {
+                        mostrarError("Error al cargar categorías/marcas: " + e.getMessage());
+                }
+        }
+
+        private void guardarProducto() {
+                PanelInsertarProducto panel = mainFrame.getPanelInsertarProducto();
+
+                String nombre = panel.getTxtNombre().getText().trim();
+                String cantidadStr = panel.getTxtCantidad().getText().trim();
+                String precioStr = panel.getTxtPrecio().getText().trim();
+                Categoria categoria = (Categoria) panel.getComboCategoria().getSelectedItem();
+                Marca marca = (Marca) panel.getComboMarca().getSelectedItem();
+
+                try {
+                        // Validaciones
+                        if (nombre.isEmpty()) {
+                                mostrarAdvertencia("El nombre no puede estar vacío");
+                                return;
+                        }
+
+                        if (categoria == null || categoria.getId() == 0) {
+                                mostrarAdvertencia("Seleccione una categoría válida");
+                                return;
+                        }
+
+                        if (marca == null || marca.getId() == 0) {
+                                mostrarAdvertencia("Seleccione una marca válida");
+                                return;
+                        }
+
+                        int cantidad = Integer.parseInt(cantidadStr);
+                        double precio = Double.parseDouble(precioStr);
+
+                        if (cantidad <= 0 || precio <= 0) {
+                                mostrarAdvertencia("La cantidad y el precio deben ser mayores a cero");
+                                return;
+                        }
+
+                        // Crear y guardar el producto
+                        Producto producto = new Producto();
+                        producto.setNombre(nombre);
+                        producto.setPrecioVenta(precio);
+                        producto.setIdCategoria(categoria.getId());
+                        producto.setIdMarca(marca.getId());
+
+                        productoDAO.guardarProductoConLote(producto, cantidad, precio);
+
+                        JOptionPane.showMessageDialog(mainFrame, "Producto guardado exitosamente",
+                                "Éxito", JOptionPane.INFORMATION_MESSAGE);
+
+                        // Limpiar campos
+                        panel.getTxtNombre().setText("");
+                        panel.getTxtCantidad().setText("");
+                        panel.getTxtPrecio().setText("");
+                        panel.getComboCategoria().setSelectedIndex(0);
+                        panel.getComboMarca().setSelectedIndex(0);
+
+                        volverAPanelProductos();
+
+                } catch (NumberFormatException e) {
+                        mostrarAdvertencia("La cantidad y el precio deben ser números válidos");
+                } catch (SQLException e) {
+                        mostrarError("Error al guardar el producto: " + e.getMessage());
+                }
+        }
+        private void actualizarTablaProductos() {
+                try {
+                        modeloTablaProductos.setRowCount(0);
+
+                        List<Producto> productos = productoDAO.obtenerTodosProductosConStock();
+
+                        for (Producto p : productos) {
+                                modeloTablaProductos.addRow(new Object[]{
+                                        p.getId(),
+                                        p.getNombre(),
+                                        String.format("$%.2f", p.getPrecioVenta()),
+                                        p.getStock(),
+                                        p.getFechaRegistro() != null ?
+                                                dateFormat.format(p.getFechaRegistro()) : "Sin fecha"
+                                });
+                        }
+                } catch (SQLException e) {
+                        mostrarError("Error al cargar productos: " + e.getMessage());
+                }
+        }
+
+        // Métodos para la gestión de ventas
         private void abrirPanelVenta() {
                 try {
                         cargarClientesEnVenta();
@@ -196,9 +345,6 @@ public class AppMain {
                         }
                 }
         }
-        public static void iniciarComoVendedor() {
-                new AppMain(); // Esto ya lanza tu interfaz como antes
-        }
 
         private void registrarVentaEnBD() throws SQLException {
                 Connection conn = null;
@@ -297,6 +443,10 @@ public class AppMain {
                 JOptionPane.showMessageDialog(mainFrame, mensaje, "Advertencia", JOptionPane.WARNING_MESSAGE);
         }
 
+        public static void iniciarComoVendedor() {
+                new AppMain().init();
+        }
+
         public static void main(String[] args) {
                 // Mostrar pantalla de login
                 SwingUtilities.invokeLater(() -> {
@@ -306,8 +456,6 @@ public class AppMain {
 
         public static void iniciarAplicacion() {
                 AppMain app = new AppMain();
-                app.init(); // Este muestra la interfaz y configura todo
+                app.init();
         }
-
-
 }

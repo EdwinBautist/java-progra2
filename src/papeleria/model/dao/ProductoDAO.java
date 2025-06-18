@@ -1,101 +1,117 @@
 package papeleria.model.dao;
 
 import papeleria.model.entity.Producto;
-import papeleria.utils.DatabaseConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import papeleria.utils.DatabaseConnection;
 
 public class ProductoDAO {
-    public List<Producto> obtenerTodosProductos() throws SQLException {
+    // ... otros métodos existentes ...
+
+    public List<Producto> obtenerTodosProductosConStock() throws SQLException {
         List<Producto> productos = new ArrayList<>();
-        String sql = "SELECT id_producto, nombre, precio_venta, stock_actual, id_categoria, id_marca FROM Producto";
+        String sql = """
+            SELECT p.id_producto, p.nombre, p.precio_venta, 
+                   IFNULL(SUM(l.cantidad), 0) AS stock,
+                   MAX(l.fecha_entrada) AS fecha_registro,
+                   p.id_categoria, p.id_marca
+            FROM Producto p 
+            LEFT JOIN Lote l ON p.id_producto = l.id_producto 
+            GROUP BY p.id_producto, p.nombre, p.precio_venta, p.id_categoria, p.id_marca
+            ORDER BY p.nombre""";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                Producto producto = new Producto();
-                producto.setId(rs.getInt("id_producto"));
-                producto.setNombre(rs.getString("nombre"));
-                producto.setPrecioVenta(rs.getDouble("precio_venta"));
-                producto.setStock(rs.getInt("stock_actual"));
-                producto.setIdCategoria(rs.getInt("id_categoria"));
-                producto.setIdMarca(rs.getInt("id_marca"));
-                productos.add(producto);
+                Producto p = new Producto();
+                p.setId(rs.getInt("id_producto"));
+                p.setNombre(rs.getString("nombre"));
+                p.setPrecioVenta(rs.getDouble("precio_venta"));
+                p.setStock(rs.getInt("stock"));
+                p.setFechaRegistro(rs.getTimestamp("fecha_registro"));
+
+                // Configurar categoría y marca (solo IDs)
+                p.setIdCategoria(rs.getInt("id_categoria"));
+                p.setIdMarca(rs.getInt("id_marca"));
+
+                productos.add(p);
             }
         }
         return productos;
     }
 
-    public Producto obtenerProductoPorId(int id) throws SQLException {
-        String sql = "SELECT id_producto, nombre, precio_venta, stock_actual, id_categoria, id_marca FROM Producto WHERE id_producto = ?";
-        Producto producto = null;
+    public void guardarProductoConLote(Producto producto, int cantidad, double precioCompra) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            // 1. Guardar producto
+            String sqlProducto = "INSERT INTO Producto (nombre, precio_venta, id_categoria, id_marca) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlProducto, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setString(1, producto.getNombre());
+                stmt.setDouble(2, producto.getPrecioVenta());
+                stmt.setInt(3, producto.getIdCategoria());
+                stmt.setInt(4, producto.getIdMarca());
+                stmt.executeUpdate();
 
-            pstmt.setInt(1, id);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    producto = new Producto();
-                    producto.setId(rs.getInt("id_producto"));
-                    producto.setNombre(rs.getString("nombre"));
-                    producto.setPrecioVenta(rs.getDouble("precio_venta"));
-                    producto.setStock(rs.getInt("stock_actual"));
-                    producto.setIdCategoria(rs.getInt("id_categoria"));
-                    producto.setIdMarca(rs.getInt("id_marca"));
+                try (ResultSet rs = stmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        producto.setId(rs.getInt(1));
+                    }
                 }
             }
+
+            // 2. Guardar lote
+            String sqlLote = "INSERT INTO Lote (fecha_entrada, precio_uni, cantidad, id_producto) VALUES (CURRENT_DATE(), ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlLote)) {
+                stmt.setDouble(1, precioCompra);
+                stmt.setInt(2, cantidad);
+                stmt.setInt(3, producto.getId());
+                stmt.executeUpdate();
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) conn.rollback();
+            throw e;
+        } finally {
+            if (conn != null) conn.setAutoCommit(true);
         }
-        return producto;
     }
-
-    public void eliminarProducto(int id) throws SQLException {
-        String sql = "DELETE FROM Producto WHERE id_producto = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, id);
-            pstmt.executeUpdate();
-        }
-    }
-
     public List<Producto> buscarProductos(String filtro) throws SQLException {
         List<Producto> productos = new ArrayList<>();
-        String sql = "SELECT id_producto, nombre, precio_venta, stock_actual FROM Producto WHERE nombre LIKE ?";
+        String sql = """
+            SELECT p.id_producto, p.nombre, p.precio_venta, 
+                   IFNULL(SUM(l.cantidad), 0) AS stock,
+                   p.id_categoria, p.id_marca
+            FROM Producto p 
+            LEFT JOIN Lote l ON p.id_producto = l.id_producto 
+            WHERE p.nombre LIKE ?
+            GROUP BY p.id_producto, p.nombre, p.precio_venta, p.id_categoria, p.id_marca
+            ORDER BY p.nombre""";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, "%" + filtro + "%");
-            try (ResultSet rs = pstmt.executeQuery()) {
+            stmt.setString(1, "%" + filtro + "%");
+
+            try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    Producto producto = new Producto();
-                    producto.setId(rs.getInt("id_producto"));
-                    producto.setNombre(rs.getString("nombre"));
-                    producto.setPrecioVenta(rs.getDouble("precio_venta"));
-                    producto.setStock(rs.getInt("stock_actual"));
-                    productos.add(producto);
+                    Producto p = new Producto();
+                    p.setId(rs.getInt("id_producto"));
+                    p.setNombre(rs.getString("nombre"));
+                    p.setPrecioVenta(rs.getDouble("precio_venta"));
+                    p.setStock(rs.getInt("stock"));
+                    p.setIdCategoria(rs.getInt("id_categoria"));
+                    p.setIdMarca(rs.getInt("id_marca"));
+                    productos.add(p);
                 }
             }
         }
         return productos;
-    }
-
-    public boolean actualizarStock(int idProducto, int cantidad) throws SQLException {
-        String sql = "UPDATE Producto SET stock_actual = stock_actual - ? WHERE id_producto = ? AND stock_actual >= ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, cantidad);
-            pstmt.setInt(2, idProducto);
-            pstmt.setInt(3, cantidad);
-
-            return pstmt.executeUpdate() > 0;
-        }
     }
 }

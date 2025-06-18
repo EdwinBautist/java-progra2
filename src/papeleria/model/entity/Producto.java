@@ -1,23 +1,15 @@
 package papeleria.model.entity;
 
+import java.sql.Timestamp;
+
 public class Producto {
     private int id;
     private String nombre;
     private double precioVenta;
     private int stock;
+    private Timestamp fechaRegistro;
     private int idCategoria;
     private int idMarca;
-
-    public Producto() {}
-
-    public Producto(int id, String nombre, double precioVenta, int stock, int idCategoria, int idMarca) {
-        this.id = id;
-        this.nombre = nombre;
-        this.precioVenta = precioVenta;
-        this.stock = stock;
-        this.idCategoria = idCategoria;
-        this.idMarca = idMarca;
-    }
 
     // Getters y Setters
     public int getId() { return id; }
@@ -32,14 +24,12 @@ public class Producto {
     public int getStock() { return stock; }
     public void setStock(int stock) { this.stock = stock; }
 
+    public Timestamp getFechaRegistro() { return fechaRegistro; }
+    public void setFechaRegistro(Timestamp fechaRegistro) { this.fechaRegistro = fechaRegistro; }
+
     public int getIdCategoria() { return idCategoria; }
     public void setIdCategoria(int idCategoria) { this.idCategoria = idCategoria; }
 
     public int getIdMarca() { return idMarca; }
     public void setIdMarca(int idMarca) { this.idMarca = idMarca; }
-
-    @Override
-    public String toString() {
-        return nombre + " (Stock: " + stock + ")";
-    }
 }

@@ -4,8 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 
 public class PanelInicio extends JPanel {
-    private JButton btnInsertarProducto;
-    private JButton btnMostrarProductos;
+    private JButton btnGestionarProductos;
     private JButton btnGestionMarca;
     private JButton btnGestionCategorias;
     private JButton btnGestionClientes;
@@ -30,26 +29,22 @@ public class PanelInicio extends JPanel {
         gbc.gridwidth = 1;
 
         gbc.gridy = 1;
-        btnInsertarProducto = createStyledButton("Registrar Producto", buttonFont);
-        add(btnInsertarProducto, gbc);
+        btnGestionarProductos = createStyledButton("Gestionar Productos", buttonFont);
+        add(btnGestionarProductos, gbc);
 
         gbc.gridy = 2;
-        btnMostrarProductos = createStyledButton("Gestionar Productos", buttonFont);
-        add(btnMostrarProductos, gbc);
-
-        gbc.gridy = 3;
         btnGestionMarca = createStyledButton("Gestionar Marcas", buttonFont);
         add(btnGestionMarca, gbc);
 
-        gbc.gridy = 4;
+        gbc.gridy = 3;
         btnGestionCategorias = createStyledButton("Gestionar Categorías", buttonFont);
         add(btnGestionCategorias, gbc);
 
-        gbc.gridy = 5;
+        gbc.gridy = 4;
         btnGestionClientes = createStyledButton("Gestionar Clientes", buttonFont);
         add(btnGestionClientes, gbc);
 
-        gbc.gridy = 6;
+        gbc.gridy = 5;
         btnRealizarVenta = createStyledButton("Realizar Venta", buttonFont);
         btnRealizarVenta.setBackground(new Color(76, 175, 80));
         btnRealizarVenta.setForeground(Color.WHITE);
@@ -67,12 +62,9 @@ public class PanelInicio extends JPanel {
         return button;
     }
 
-    public JButton getBtnInsertarProducto() {
-        return btnInsertarProducto;
-    }
-
-    public JButton getBtnMostrarProductos() {
-        return btnMostrarProductos;
+    // Getters
+    public JButton getBtnGestionarProductos() {
+        return btnGestionarProductos;
     }
 
     public JButton getBtnGestionMarca() {
