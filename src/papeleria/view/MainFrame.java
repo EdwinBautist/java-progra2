@@ -15,6 +15,8 @@ public class MainFrame extends JFrame {
     private PanelInsertarProducto panelInsertar;
     private PanelMostrarProductos panelMostrar;
     private PanelGestionMarca panelGestionMarca; // Nuevo panel de gestión de marcas
+    private PanelVenta panelVenta; //Para la gestión de ventas
+
 
     public MainFrame() {
         setTitle("Sistema de Gestión de Papelería");
@@ -30,6 +32,8 @@ public class MainFrame extends JFrame {
         panelInsertar = new PanelInsertarProducto();
         panelMostrar = new PanelMostrarProductos();
         panelGestionMarca = new PanelGestionMarca(); // Inicializar el nuevo panel
+        panelVenta = new PanelVenta();
+        cardPanel.add(panelVenta, "Venta");
 
         // Añadir paneles al CardLayout
         cardPanel.add(panelInicio, "Inicio");
@@ -41,6 +45,8 @@ public class MainFrame extends JFrame {
     }
 
     // --- Getters para acceder a los paneles y al CardLayout ---
+    public PanelVenta getPanelVenta() { return panelVenta; }
+
     public JPanel getCardPanel() {
         return cardPanel;
     }

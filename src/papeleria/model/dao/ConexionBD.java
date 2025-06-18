@@ -7,9 +7,9 @@ import java.sql.SQLException;
 public class ConexionBD {
     private static Connection connection;
     // --- Configura estos valores con los de tu base de datos ---
-    private static final String URL = "jdbc:mysql://localhost:3306/Papeleria"; // ¡IMPORTANTE! Nombre de tu BD con P mayúscula
-    private static final String USUARIO = "Daniel"; // Tu usuario de MySQL
-    private static final String CONTRASENA = "pape"; // Tu contraseña de MySQL
+    private static final String URL = "jdbc:mysql://localhost:3306/papeleria";
+    private static final String USUARIO = "edwi";
+    private static final String CONTRASENA = "Papeleria2024!";
 
     /**
      * Obtiene una instancia de la conexión a la base de datos.
