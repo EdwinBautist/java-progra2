@@ -18,6 +18,10 @@ public class Producto {
         this.stock = stock;
     }
 
+    public Producto() {
+        // Constructor vacío para frameworks y DAOs
+    }
+
     // Constructor para insertar un nuevo producto (sin ID, ya que la BD lo genera)
     // El stock inicial se pasará al DAO y se manejará en Lote y en el campo stock_actual del Producto
     public Producto(String nombre, double precioVenta, Categoria categoria, Marca marca) {

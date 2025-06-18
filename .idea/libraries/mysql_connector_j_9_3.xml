@@ -2,6 +2,7 @@
   <library name="mysql-connector-j-9.3">
     <CLASSES>
       <root url="file://$USER_HOME$/Descargas/mysql-connector-j-9.3.0" />
+      <root url="jar://$USER_HOME$/Descargas/mysql-connector-j_9.3.0-1ubuntu24.04_all/usr/share/java/mysql-connector-java-9.3.0.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>

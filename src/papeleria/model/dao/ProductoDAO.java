@@ -3,242 +3,188 @@ package papeleria.model.dao;
 import papeleria.model.entity.Producto;
 import papeleria.model.entity.Categoria;
 import papeleria.model.entity.Marca;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import papeleria.utils.DatabaseConnection;
 
 public class ProductoDAO {
+    // Consultas SQL actualizadas para incluir stock_actual
+    private static final String SQL_INSERT =
+            "INSERT INTO Producto (nombre, precio_venta, id_categoria, id_marca, stock_actual) VALUES (?, ?, ?, ?, ?)";
+    private static final String SQL_SELECT_ALL =
+            "SELECT p.id_producto, p.nombre, p.precio_venta, p.stock_actual, " +
+                    "c.id_categoria, c.nombre AS categoria_nombre, " +
+                    "m.id_marca, m.nombre AS marca_nombre " +
+                    "FROM Producto p " +
+                    "JOIN Categoria c ON p.id_categoria = c.id_categoria " +
+                    "JOIN Marca m ON p.id_marca = m.id_marca";
+    private static final String SQL_SELECT_BY_ID =
+            "SELECT p.id_producto, p.nombre, p.precio_venta, p.stock_actual, " +
+                    "c.id_categoria, c.nombre AS categoria_nombre, " +
+                    "m.id_marca, m.nombre AS marca_nombre " +
+                    "FROM Producto p " +
+                    "JOIN Categoria c ON p.id_categoria = c.id_categoria " +
+                    "JOIN Marca m ON p.id_marca = m.id_marca " +
+                    "WHERE p.id_producto = ?";
+    private static final String SQL_UPDATE =
+            "UPDATE Producto SET nombre = ?, precio_venta = ?, id_categoria = ?, id_marca = ?, stock_actual = ? WHERE id_producto = ?";
+    private static final String SQL_DELETE =
+            "DELETE FROM Producto WHERE id_producto = ?";
+    private static final String SQL_SEARCH =
+            "SELECT p.id_producto, p.nombre, p.precio_venta, p.stock_actual, " +
+                    "c.id_categoria, c.nombre AS categoria_nombre, " +
+                    "m.id_marca, m.nombre AS marca_nombre " +
+                    "FROM Producto p " +
+                    "JOIN Categoria c ON p.id_categoria = c.id_categoria " +
+                    "JOIN Marca m ON p.id_marca = m.id_marca " +
+                    "WHERE p.nombre LIKE ? OR c.nombre LIKE ? OR m.nombre LIKE ?";
+    private static final String SQL_UPDATE_STOCK =
+            "UPDATE Producto SET stock_actual = stock_actual + ? WHERE id_producto = ?";
+    private static final String SQL_SELECT_LOW_STOCK =
+            "SELECT p.id_producto, p.nombre, p.stock_actual " +
+                    "FROM Producto p WHERE p.stock_actual < ? ORDER BY p.stock_actual ASC";
 
-    /**
-     * Inserta un nuevo producto en la base de datos y su lote inicial.
-     * Asume que el Producto ya tiene objetos Categoria y Marca válidos (con ID).
-     *
-     * @param producto El objeto Producto a insertar.
-     * @param cantidadInicial La cantidad inicial de stock para este producto.
-     * @throws SQLException Si ocurre un error de acceso a la base de datos.
-     */
-    public void insertarProducto(Producto producto, int cantidadInicial) throws SQLException {
-        String sqlProducto = "INSERT INTO Producto (nombre, precio_venta, id_categoria, id_marca, stock_actual) VALUES (?, ?, ?, ?, ?)";
-        String sqlLote = "INSERT INTO Lote (id_producto, cantidad, fecha_entrada, id_proveedor, id_compra) VALUES (?, ?, CURDATE(), NULL, NULL)"; // Asumiendo que id_proveedor e id_compra pueden ser NULL para lote inicial
+    public void insertar(Producto producto) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS)) {
 
-        Connection conn = null;
-        PreparedStatement stmtProducto = null;
-        PreparedStatement stmtLote = null;
-        ResultSet rs = null;
+            pstmt.setString(1, producto.getNombre());
+            pstmt.setDouble(2, producto.getPrecioVenta());
+            pstmt.setInt(3, producto.getCategoria().getId());
+            pstmt.setInt(4, producto.getMarca().getId());
+            pstmt.setInt(5, producto.getStock());
+            pstmt.executeUpdate();
 
-        try {
-            conn = ConexionBD.getConnection();
-            conn.setAutoCommit(false); // Iniciar transacción
-
-            // 1. Insertar el Producto
-            stmtProducto = conn.prepareStatement(sqlProducto, Statement.RETURN_GENERATED_KEYS);
-            stmtProducto.setString(1, producto.getNombre());
-            stmtProducto.setDouble(2, producto.getPrecioVenta());
-            stmtProducto.setInt(3, producto.getCategoria().getId()); // ID de la categoría
-            stmtProducto.setInt(4, producto.getMarca().getId());    // ID de la marca
-            stmtProducto.setInt(5, cantidadInicial); // Stock inicial
-            stmtProducto.executeUpdate();
-
-            // Obtener el ID generado para el producto
-            rs = stmtProducto.getGeneratedKeys();
-            if (rs.next()) {
-                producto.setId(rs.getInt(1)); // Asignar el ID al objeto Producto
-            } else {
-                throw new SQLException("No se pudo obtener el ID del producto insertado.");
-            }
-
-            // 2. Insertar el Lote inicial para ese producto
-            stmtLote = conn.prepareStatement(sqlLote);
-            stmtLote.setInt(1, producto.getId());
-            stmtLote.setInt(2, cantidadInicial);
-            stmtLote.executeUpdate();
-
-            conn.commit(); // Confirmar la transacción
-        } catch (SQLException e) {
-            if (conn != null) {
-                try {
-                    conn.rollback(); // Revertir la transacción en caso de error
-                } catch (SQLException ex) {
-                    System.err.println("Error al realizar rollback: " + ex.getMessage());
-                }
-            }
-            throw e; // Relanzar la excepción para que sea manejada por AppMain
-        } finally {
-            // Cerrar recursos en orden inverso de apertura
-            if (rs != null) try { rs.close(); } catch (SQLException e) { e.printStackTrace(); }
-            if (stmtProducto != null) try { stmtProducto.close(); } catch (SQLException e) { e.printStackTrace(); }
-            if (stmtLote != null) try { stmtLote.close(); } catch (SQLException e) { e.printStackTrace(); }
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true); // Restaurar auto-commit
-                    // La conexión se cierra en ConexionBD.closeConnection() cuando la aplicación termina.
-                    // Si tienes un pool de conexiones, aquí devolverías la conexión al pool.
-                } catch (SQLException e) {
-                    e.printStackTrace();
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    producto.setId(rs.getInt(1));
                 }
             }
         }
     }
 
-    /**
-     * Busca productos en la base de datos por nombre.
-     * @param filtro El texto para filtrar por nombre de producto. Si es nulo o vacío, trae todos.
-     * @return Una lista de productos que coinciden con el filtro.
-     * @throws SQLException Si ocurre un error de acceso a la base de datos.
-     */
-    public List<Producto> buscarProductos(String filtro) throws SQLException {
+    public List<Producto> obtenerTodos() throws SQLException {
         List<Producto> productos = new ArrayList<>();
-        String sql = "SELECT p.id_producto, p.nombre AS producto_nombre, p.precio_venta, p.stock_actual, " +
-                "c.id_categoria, c.nombre AS categoria_nombre, " +
-                "m.id_marca, m.nombre AS marca_nombre " +
-                "FROM Producto p " +
-                "JOIN Categoria c ON p.id_categoria = c.id_categoria " +
-                "JOIN Marca m ON p.id_marca = m.id_marca " +
-                "WHERE p.nombre LIKE ? OR c.nombre LIKE ? OR m.nombre LIKE ?"; // Buscar en nombre de producto, categoría o marca
 
-        try (Connection conn = ConexionBD.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            String likeFiltro = "%" + (filtro != null ? filtro : "") + "%";
-            stmt.setString(1, likeFiltro);
-            stmt.setString(2, likeFiltro);
-            stmt.setString(3, likeFiltro);
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(SQL_SELECT_ALL)) {
 
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    Categoria categoria = new Categoria(rs.getInt("id_categoria"), rs.getString("categoria_nombre"));
-                    Marca marca = new Marca(rs.getInt("id_marca"), rs.getString("marca_nombre"));
-                    Producto producto = new Producto(
-                            rs.getInt("id_producto"),
-                            rs.getString("producto_nombre"),
-                            rs.getDouble("precio_venta"),
-                            categoria,
-                            marca,
-                            rs.getInt("stock_actual") // Cargar el stock_actual
-                    );
-                    productos.add(producto);
-                }
+            while (rs.next()) {
+                productos.add(mapearProducto(rs));
             }
         }
         return productos;
     }
 
-    /**
-     * Obtiene un producto específico por su ID.
-     * @param idProducto El ID del producto a buscar.
-     * @return El objeto Producto si se encuentra, null en caso contrario.
-     * @throws SQLException Si ocurre un error de acceso a la base de datos.
-     */
-    public Producto obtenerProductoPorId(int idProducto) throws SQLException {
-        String sql = "SELECT p.id_producto, p.nombre AS producto_nombre, p.precio_venta, p.stock_actual, " +
-                "c.id_categoria, c.nombre AS categoria_nombre, " +
-                "m.id_marca, m.nombre AS marca_nombre " +
-                "FROM Producto p " +
-                "JOIN Categoria c ON p.id_categoria = c.id_categoria " +
-                "JOIN Marca m ON p.id_marca = m.id_marca " +
-                "WHERE p.id_producto = ?";
-        try (Connection conn = ConexionBD.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, idProducto);
-            try (ResultSet rs = stmt.executeQuery()) {
+    public Producto obtenerPorId(int id) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_SELECT_BY_ID)) {
+
+            pstmt.setInt(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    Categoria categoria = new Categoria(rs.getInt("id_categoria"), rs.getString("categoria_nombre"));
-                    Marca marca = new Marca(rs.getInt("id_marca"), rs.getString("marca_nombre"));
-                    return new Producto(
-                            rs.getInt("id_producto"),
-                            rs.getString("producto_nombre"),
-                            rs.getDouble("precio_venta"),
-                            categoria,
-                            marca,
-                            rs.getInt("stock_actual")
-                    );
+                    return mapearProducto(rs);
                 }
             }
         }
         return null;
     }
 
-    /**
-     * Actualiza los datos de un producto existente.
-     *
-     * @param producto El objeto Producto con los datos actualizados.
-     * @throws SQLException Si ocurre un error de acceso a la base de datos.
-     */
-    public void actualizarProducto(Producto producto) throws SQLException {
-        String sql = "UPDATE Producto SET nombre = ?, precio_venta = ?, id_categoria = ?, id_marca = ?, stock_actual = ? WHERE id_producto = ?";
-        try (Connection conn = ConexionBD.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, producto.getNombre());
-            stmt.setDouble(2, producto.getPrecioVenta());
-            stmt.setInt(3, producto.getCategoria().getId());
-            stmt.setInt(4, producto.getMarca().getId());
-            stmt.setInt(5, producto.getStock()); // Asume que el stock_actual se puede actualizar directamente
-            stmt.setInt(6, producto.getId());
-            stmt.executeUpdate();
+    public void actualizar(Producto producto) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_UPDATE)) {
+
+            pstmt.setString(1, producto.getNombre());
+            pstmt.setDouble(2, producto.getPrecioVenta());
+            pstmt.setInt(3, producto.getCategoria().getId());
+            pstmt.setInt(4, producto.getMarca().getId());
+            pstmt.setInt(5, producto.getStock());
+            pstmt.setInt(6, producto.getId());
+            pstmt.executeUpdate();
         }
     }
 
-    /**
-     * Elimina un producto de la base de datos por su ID.
-     * Considera que esto puede necesitar la eliminación en cascada de lotes o manejo de claves foráneas.
-     * Tu SQL dump indica ON DELETE CASCADE para Producto_Venta y Producto_Compra.
-     * Si Lote no tiene CASCADE para id_producto, esta operación fallará si hay lotes asociados.
-     *
-     * @param idProducto El ID del producto a eliminar.
-     * @throws SQLException Si ocurre un error de acceso a la base de datos (ej. violación de FK).
-     */
-    public void eliminarProducto(int idProducto) throws SQLException {
-        // Primero, si no tienes ON DELETE CASCADE configurado para Lote en tu DB,
-        // deberías eliminar los lotes asociados antes de eliminar el producto.
-        // String deleteLotesSql = "DELETE FROM Lote WHERE id_producto = ?";
-        String deleteProductoSql = "DELETE FROM Producto WHERE id_producto = ?";
+    public void eliminar(int id) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_DELETE)) {
 
-        Connection conn = null;
-        PreparedStatement stmtProducto = null;
-        // PreparedStatement stmtLotes = null; // Si necesitas eliminar lotes manualmente
+            pstmt.setInt(1, id);
+            pstmt.executeUpdate();
+        }
+    }
 
-        try {
-            conn = ConexionBD.getConnection();
-            conn.setAutoCommit(false); // Iniciar transacción
+    public List<Producto> buscarProductos(String criterio) throws SQLException {
+        List<Producto> productos = new ArrayList<>();
+        String parametro = "%" + criterio + "%";
 
-            // Si necesitas eliminar lotes manualmente:
-            // stmtLotes = conn.prepareStatement(deleteLotesSql);
-            // stmtLotes.setInt(1, idProducto);
-            // stmtLotes.executeUpdate();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_SEARCH)) {
 
-            stmtProducto = conn.prepareStatement(deleteProductoSql);
-            stmtProducto.setInt(1, idProducto);
-            int filasAfectadas = stmtProducto.executeUpdate();
+            pstmt.setString(1, parametro);
+            pstmt.setString(2, parametro);
+            pstmt.setString(3, parametro);
 
-            if (filasAfectadas == 0) {
-                conn.rollback(); // No se eliminó nada, hacer rollback
-                throw new SQLException("No se encontró el producto con ID: " + idProducto + " para eliminar.");
-            }
-
-            conn.commit(); // Confirmar la transacción
-        } catch (SQLException e) {
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    System.err.println("Error al realizar rollback: " + ex.getMessage());
-                }
-            }
-            throw e;
-        } finally {
-            // if (stmtLotes != null) try { stmtLotes.close(); } catch (SQLException e) { e.printStackTrace(); }
-            if (stmtProducto != null) try { stmtProducto.close(); } catch (SQLException e) { e.printStackTrace(); }
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException e) {
-                    e.printStackTrace();
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    productos.add(mapearProducto(rs));
                 }
             }
         }
+        return productos;
+    }
+
+    public void actualizarStock(int idProducto, int cantidad) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_UPDATE_STOCK)) {
+
+            pstmt.setInt(1, cantidad);
+            pstmt.setInt(2, idProducto);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public List<Producto> obtenerProductosBajoStock(int nivelMinimo) throws SQLException {
+        List<Producto> productos = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_SELECT_LOW_STOCK)) {
+
+            pstmt.setInt(1, nivelMinimo);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Producto p = new Producto();
+                    p.setId(rs.getInt("id_producto"));
+                    p.setNombre(rs.getString("nombre"));
+                    p.setStock(rs.getInt("stock_actual"));
+                    productos.add(p);
+                }
+            }
+        }
+        return productos;
+    }
+
+    private Producto mapearProducto(ResultSet rs) throws SQLException {
+        Producto producto = new Producto();
+        producto.setId(rs.getInt("id_producto"));
+        producto.setNombre(rs.getString("nombre"));
+        producto.setPrecioVenta(rs.getDouble("precio_venta"));
+        producto.setStock(rs.getInt("stock_actual"));
+
+        Categoria categoria = new Categoria(
+                rs.getInt("id_categoria"),
+                rs.getString("categoria_nombre")
+        );
+
+        Marca marca = new Marca(
+                rs.getInt("id_marca"),
+                rs.getString("marca_nombre")
+        );
+
+        producto.setCategoria(categoria);
+        producto.setMarca(marca);
+
+        return producto;
     }
 }
