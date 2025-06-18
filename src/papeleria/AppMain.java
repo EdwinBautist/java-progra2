@@ -490,11 +490,15 @@ public class AppMain {
                         }
                 }
         }
+        public static void iniciarComoVendedor() {
+                new AppMain(); // Esto ya lanza tu interfaz como antes
+        }
 
         public static void main(String[] args) {
+                // Mostrar pantalla de login
                 SwingUtilities.invokeLater(() -> {
-                        AppMain app = new AppMain();
-                        app.init();
+                        new papeleria.login.LoginFrame();
                 });
         }
+
 }
